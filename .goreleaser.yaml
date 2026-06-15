@@ -1,0 +1,59 @@
+version: 2
+
+project_name: md
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: md
+    main: .
+    binary: md
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X main.version={{ .Version }}
+
+archives:
+  - id: default
+    formats: [tar.gz]
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+
+homebrew_casks:
+  - name: md
+    repository:
+      owner: prvrtl
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    directory: Casks
+    homepage: "https://github.com/prvrtl/mastodon-cli"
+    description: "A terminal Mastodon client with a modern TUI and live timelines"
+    binaries:
+      - md
+    url:
+      template: "https://github.com/prvrtl/mastodon-cli/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
+    hooks:
+      post:
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/md"]
+          end
